@@ -136,9 +136,10 @@ export function NotificationsPanel() {
           {displayNotifications.map((notification) => (
             <div
               key={notification.id}
+              onClick={() => !notification.read && markAsRead(notification.id)}
               className={`p-4 rounded-lg border transition-all ${notification.read
-                ? 'bg-gray-800 border-gray-700'
-                : 'bg-blue-900/20 border-blue-500/30'
+                  ? 'bg-gray-800 border-gray-700 opacity-75'
+                  : 'bg-blue-900/20 border-blue-500/30 cursor-pointer hover:bg-blue-900/30 hover:border-blue-500/50'
                 }`}
             >
               <div className="flex items-start gap-3">
