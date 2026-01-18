@@ -5,14 +5,16 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { LoginPage } from './components/LoginPage';
 import { LiveDashboard } from './components/LiveDashboard';
 import { HelpGuide } from './components/HelpGuide';
-import { Users, UserCog, Shield, Monitor } from 'lucide-react';
-
-type UserRole = 'citizen' | 'staff' | 'admin' | 'display' | null;
+import { RoleSwitchModal, UserRole } from './components/RoleSwitchModal';
+import { Users, UserCog, Shield, Monitor, LogOut } from 'lucide-react';
 
 export default function App() {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLiveDashboard, setShowLiveDashboard] = useState(false);
+  
+  // Safe Role Switch State
+  const [pendingRole, setPendingRole] = useState<UserRole>(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -32,7 +34,7 @@ export default function App() {
   const handleLogin = (role: UserRole) => {
     setUserRole(role);
     setIsLoggedIn(true);
-    if (role) {
+    if (role && role !== 'display') {
       localStorage.setItem('userRole', role);
     }
     if (role === 'display') {
@@ -46,10 +48,23 @@ export default function App() {
     setShowLiveDashboard(false);
     localStorage.removeItem('userRole');
   };
+  
+  // Role Switch Logic
+  const initiateRoleSwitch = (targetRole: UserRole) => {
+    if (targetRole === userRole) return;
+    setPendingRole(targetRole);
+  };
+
+  const confirmRoleSwitch = () => {
+    if (pendingRole) {
+      handleLogin(pendingRole);
+      setPendingRole(null);
+    }
+  };
 
   // Full-screen live dashboard mode
   if (showLiveDashboard) {
-    return <LiveDashboard />;
+    return <LiveDashboard onClose={() => setShowLiveDashboard(false)} />;
   }
 
   if (!isLoggedIn) {
@@ -58,6 +73,15 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-950">
+      {/* Role Switch Confirmation Modal */}
+      <RoleSwitchModal 
+        isOpen={!!pendingRole}
+        targetRole={pendingRole}
+        currentRole={userRole}
+        onClose={() => setPendingRole(null)}
+        onConfirm={confirmRoleSwitch}
+      />
+
       {/* Header */}
       <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -72,28 +96,60 @@ export default function App() {
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Role Switcher Buttons */}
+              <div className="hidden md:flex bg-gray-800 rounded-lg p-1 border border-gray-700">
+                <button
+                  onClick={() => initiateRoleSwitch('citizen')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
+                    userRole === 'citizen' 
+                      ? 'bg-blue-600 text-white shadow-lg' 
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Citizen
+                </button>
+                <button
+                  onClick={() => initiateRoleSwitch('staff')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
+                    userRole === 'staff' 
+                      ? 'bg-green-600 text-white shadow-lg' 
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <UserCog className="w-4 h-4" />
+                  Staff
+                </button>
+                <button
+                  onClick={() => initiateRoleSwitch('admin')}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
+                    userRole === 'admin' 
+                      ? 'bg-purple-600 text-white shadow-lg' 
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <Shield className="w-4 h-4" />
+                  Admin
+                </button>
+              </div>
+
               {/* Live Dashboard Button */}
               <button
                 onClick={() => setShowLiveDashboard(true)}
-                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white rounded-lg text-sm transition-colors flex items-center gap-2"
+                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 hover:text-white rounded-lg text-sm transition-colors flex items-center gap-2 ml-2"
                 title="Open Live Dashboard Display"
               >
                 <Monitor className="w-4 h-4" />
                 <span className="hidden sm:inline">Live Display</span>
               </button>
               
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-lg">
-                {userRole === 'citizen' && <Users className="w-4 h-4 text-blue-400" />}
-                {userRole === 'staff' && <UserCog className="w-4 h-4 text-green-400" />}
-                {userRole === 'admin' && <Shield className="w-4 h-4 text-purple-400" />}
-                <span className="text-sm text-gray-300 capitalize">{userRole}</span>
-              </div>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition-colors"
+                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors ml-1"
+                title="Logout"
               >
-                Logout
+                <LogOut className="w-5 h-5" />
               </button>
             </div>
           </div>

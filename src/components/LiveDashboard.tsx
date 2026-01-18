@@ -1,16 +1,40 @@
 import { useState, useEffect } from 'react';
-import { Activity, Clock, Users, TrendingUp, Bell } from 'lucide-react';
+import { Activity, Users, TrendingUp, Bell, X } from 'lucide-react';
 import { getStoredQueue, MOCK_SERVICES } from '../utils/mockData';
+import { DashboardClock } from './DashboardClock';
+import { QueueItem } from '../types';
 
-export function LiveDashboard() {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [queue, setQueue] = useState(getStoredQueue());
+interface LiveDashboardProps {
+  onClose: () => void;
+}
+
+export function LiveDashboard({ onClose }: LiveDashboardProps) {
+  const [queue, setQueue] = useState<QueueItem[]>(getStoredQueue());
   const [currentToken, setCurrentToken] = useState('A105');
+
+  // Handle keyboard (Esc) to exit
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date());
-      setQueue(getStoredQueue());
+      const newQueue = getStoredQueue();
+      // Simple optimization: JSON stringify compare (simulating deep equal) 
+      // In a real app, we'd use a better deep comparison or React Query
+      setQueue(prev => {
+        if (JSON.stringify(prev) !== JSON.stringify(newQueue)) {
+          return newQueue;
+        }
+        return prev;
+      });
+
       // Simulate token changes
       const tokens = ['A105', 'B203', 'C412', 'A106'];
       setCurrentToken(tokens[Math.floor(Math.random() * tokens.length)]);
@@ -22,9 +46,9 @@ export function LiveDashboard() {
   const services = MOCK_SERVICES.slice(0, 4);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 overflow-hidden z-[100]">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-8 relative">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -35,9 +59,18 @@ export function LiveDashboard() {
               <p className="text-lg text-blue-100">Live Queue Management System</p>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-white">{currentTime.toLocaleTimeString()}</div>
-            <div className="text-lg text-blue-100">{currentTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+          
+          <div className="flex items-center gap-6">
+             <DashboardClock />
+             
+             <button 
+               onClick={onClose}
+               className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition-colors text-white"
+               title="Exit Live Display (Esc)"
+               aria-label="Exit Live Display"
+             >
+               <X className="w-8 h-8" />
+             </button>
           </div>
         </div>
       </div>
@@ -58,7 +91,8 @@ export function LiveDashboard() {
         {/* Service-wise Queue Status */}
         <div className="grid grid-cols-2 gap-8 mb-12">
           {services.map((service, idx) => {
-            const queueLength = Math.floor(Math.random() * 15) + 5;
+            // In a real app, calculate from 'queue' prop
+            const queueLength = Math.floor(Math.random() * 15) + 5; 
             const waitTime = queueLength * service.averageTime;
             
             return (
